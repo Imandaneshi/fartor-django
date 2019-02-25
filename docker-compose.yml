@@ -1,0 +1,49 @@
+version: "3"
+services:
+  web:
+    build: .
+    command: sh -c "sleep 2 && python3 manage.py runserver 0.0.0.0:8000"
+    networks:
+    - shared-net
+    env_file:
+    - .env
+    volumes:
+    - .:/code
+    ports:
+    - "8000:8000"
+
+  db:
+    image: "postgres:10-alpine"
+    restart: always
+    ports:
+    - "5432:5432"
+    networks:
+    - shared-net
+    env_file:
+    - .env
+
+  redis:
+    image: "redis:4.0-alpine"
+    restart: always
+    ports:
+    - "6379:6379"
+    networks:
+    - shared-net
+
+  celery:
+    build: fartor
+    container_name: celery
+    command: celery -A jack worker -l info
+    networks:
+    - shared-net
+    env_file:
+    - .env
+    volumes:
+    - .:/code
+    depends_on:
+    - db
+    - redis
+
+networks:
+  shared-net:
+    driver: bridge

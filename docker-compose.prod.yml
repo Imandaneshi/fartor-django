@@ -1,0 +1,53 @@
+version: "3"
+services:
+  web:
+    build: .
+    restart: always
+    networks:
+    - shared-net
+    env_file:
+    - ./.env
+    command: daphne -p 8000 myproject.asgi:application
+    volumes:
+    - .:/code
+    ports:
+    - "8080:8080"
+
+  db:
+    image: "postgres:10-alpine"
+    restart: always
+    ports:
+    - "5432:5432"
+    networks:
+    - shared-net
+    env_file:
+    - .env
+    volumes:
+    - ./postgres/data:/var/lib/postgresql/data
+
+  redis:
+    image: "redis:4.0-alpine"
+    restart: always
+    ports:
+    - "6379:6379"
+    networks:
+    - shared-net
+
+  celery:
+    build: .
+    restart: always
+    container_name: celery
+    command: celery -A jack worker -l info
+    networks:
+    - shared-net
+    env_file:
+    - .env
+    volumes:
+    - .:/code
+    depends_on:
+    - db
+    - redis
+
+networks:
+  shared-net:
+    driver: bridge
